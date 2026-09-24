@@ -46,6 +46,10 @@ Preserves OpenClash nodes, subscriptions, rules, node DNS and DNS redirection, p
 
 ## 安装 / Install
 
+**建议先启用 zram。** 同时运行 AGH 和 OpenClash，尤其使用大量过滤规则时，建议先安装并启用 zram 压缩交换空间，降低内存不足导致服务退出或系统卡死的风险。即使 GL.iNet 固件内核已支持 zram，也不代表已安装并启用配套组件；若缺少 `zram-swap`，请从与当前固件匹配的软件源安装并启用。用 `cat /proc/swaps` 检查是否出现 `/dev/zram*`。请按具体型号和固件确认支持情况；zram 不能保证消除所有内存不足问题。本安装器不安装或调整 zram。
+
+**Enable zram first, where supported.** When running AGH and OpenClash together, especially with large filter lists, installing and enabling compressed zram swap is recommended to reduce the risk of services being killed or the system becoming unresponsive under memory pressure. Kernel support in GL.iNet firmware does not mean the supporting package and service are installed and active. If `zram-swap` is missing, install and enable it using feeds matching your firmware; check for `/dev/zram*` in `cat /proc/swaps`. Verify support for your model/build. Zram cannot prevent every out-of-memory condition, and this installer does not configure it. [OpenWrt zram-swap](https://openwrt.org/packages/pkgdata/zram-swap).
+
 **SSH 登录路由器，以 root 执行这一行。 / Run this line as root in the router's SSH terminal.**
 
 ```sh
