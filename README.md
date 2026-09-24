@@ -22,9 +22,13 @@ Turning off OpenClash disables proxying; turning off AGH disables ad filtering. 
 
 ## 兼容范围 / Compatibility
 
-**v1.1.0 新增 GL-BE3600 的 fw4 / nftables 适配，保留 GL-MT5000 的 fw3 支持。**
+**v1.2.0 支持 GL-BE3600 的 fw4 / nftables 和 GL-MT5000 的 fw3，并可从受支持的 v1.0.0 / v1.1.0 安装直接升级。**
 
-**v1.1.0 adds GL-BE3600 support with fw4 / nftables and retains GL-MT5000 support with fw3.**
+**v1.2.0 supports GL-BE3600 with fw4 / nftables and GL-MT5000 with fw3, with direct upgrades from verified v1.0.0 / v1.1.0 installations.**
+
+新版按增强、TUN、混合模式分别检查重定向、TPROXY 或 TUN 标记及路由，并独立识别 IPv6 模式，避免把纯 TUN 缺少 TCP 重定向规则误判成故障。不会替用户切换模式；fw3、fw4 均等待原生服务操作结束后才尝试修复。
+
+Readiness checks now follow the selected enhanced, TUN or mixed mode, checking the corresponding redirect, TPROXY or TUN marks and routes, with independent IPv6 mode detection. Pure TUN no longer requires a TCP redirect rule. The selected mode is preserved, and both backends wait for native lifecycle operations before attempting repair.
 
 | 型号 / Model | 已适配环境 / Supported environment | 防火墙 / Firewall |
 |---|---|---|
@@ -35,9 +39,9 @@ Turning off OpenClash disables proxying; turning off AGH disables ad filtering. 
 
 The installer also checks exact firmware/plugin file hashes and rejects different files, even with the same version number. BE3600 support covers the tested build, not every stock or third-party 4.10.1 firmware.
 
-- 已安装 / Already installed: AGH, OpenClash, Ruby/YAML, `dig`, `timeout`, `uci`, `ubus`, `netstat`, `pidof`, `pgrep`, `sha256sum`；另需 / plus `iptables` + `ip6tables` (fw3), or `fw4` + `nft` (fw4). 下载命令另需 / The download command also requires `curl`.
-- 配置前提 / Required settings: 单个 / one dnsmasq (port `53`); AGH DNS `3053`, **Handle Client Requests: OFF**; GL.iNet DNS: **Automatic**; OpenClash: **Fake-IP Mix**, DNS port `7874`.
-- OpenClash DNS 劫持可关闭或使用 Dnsmasq Redirect，保留原选择；关闭时手动指定其他 DNS 的客户端可能绕过过滤。fw4 开启 IPv6 时需使用 IPv6 模式 `3`。 / OpenClash DNS redirection may be disabled or set to Dnsmasq Redirect; the existing choice is preserved. With redirection disabled, clients using another DNS server may bypass filtering. IPv6 mode `3` is required when IPv6 is enabled on fw4.
+- 已安装 / Already installed: AGH, OpenClash, Ruby/YAML, `dig`, `timeout`, `uci`, `ubus`, `netstat`, `pidof`, `pgrep`, `sha256sum`, `ip`；另需 / plus `iptables` + `ip6tables` (fw3), or `fw4` + `nft` (fw4). 下载命令另需 / The download command also requires `curl`.
+- 配置前提 / Required settings: 单个 / one dnsmasq (port `53`); AGH DNS `3053`, **Handle Client Requests: OFF**; GL.iNet DNS: **Automatic**; OpenClash: **Fake-IP**, **Fake-IP TUN** 或 / or **Fake-IP Mix**, DNS port `7874`.
+- OpenClash DNS 劫持可关闭或使用 Dnsmasq Redirect，保留原选择；关闭时手动指定其他 DNS 的客户端可能绕过过滤。IPv6 模式 `0`、`1`、`2`、`3` 均可保留。 / OpenClash DNS redirection may be disabled or set to Dnsmasq Redirect; the existing choice is preserved. With redirection disabled, clients using another DNS server may bypass filtering. IPv6 modes `0`, `1`, `2` and `3` are preserved.
 - 自定义按域名 DNS 或 AGH 上游文件需另行适配。 / Custom per-domain DNS or an AGH upstream file requires separate integration.
 
 保留 OpenClash 的节点、订阅、规则、节点 DNS 和 DNS 劫持，以及 AGH 的过滤器、缓存容量、日志和统计设置；仅协调必要 DNS 字段并部署路由器服务。两种防火墙均应用 watchdog 兼容补丁；原有 nat6 补丁仅用于 fw3，fw4 不修改 nat6。关闭本机 OpenClash 后优先使用可用 WAN DNS，备用为 `223.5.5.5`（普通 DNS）。上级路由器的过滤或代理仍由上级控制。
@@ -53,16 +57,16 @@ Preserves OpenClash nodes, subscriptions, rules, node DNS and DNS redirection, p
 **SSH 登录路由器，以 root 执行这一行。 / Run this line as root in the router's SSH terminal.**
 
 ```sh
-curl -fL --retry 3 https://github.com/CyberChun0329/glinet-agh-openclash/releases/download/v1.1.0/glinet-agh-openclash-compat-1.1.0.sh -o /tmp/glinet-agh-openclash-compat.sh && sh /tmp/glinet-agh-openclash-compat.sh
+curl -fL --retry 3 https://github.com/CyberChun0329/glinet-agh-openclash/releases/download/v1.2.0/glinet-agh-openclash-compat-1.2.0.sh -o /tmp/glinet-agh-openclash-compat.sh && sh /tmp/glinet-agh-openclash-compat.sh
 ```
 
 先完整下载，成功后才安装。脚本自带全部组件，自动备份并设置开机启动；同版本健康安装会直接跳过。无需电脑端常驻程序。
 
 Downloads the complete self-contained script before running it, creates backups and enables startup on boot. A healthy installation of the same version is left unchanged. No computer-side daemon is needed.
 
-已有 v1.0.0 的设备无需为 BE3600 适配而升级。v1.1.0 不覆盖旧安装；如需迁移，先用 v1.0.0 脚本卸载，再安装新版。
+若检测到未修改的 v1.0.0 或 v1.1.0 安装，运行同一安装命令会自动升级协调服务，保留原始卸载备份、用户设置和原生服务状态。升级只重启协调服务；若健康检查失败，恢复旧版协调文件与安装记录。未知或已改动的文件、损坏的备份及未完成事务会拒绝升级。
 
-Existing v1.0.0 installations do not need an update for BE3600 support. v1.1.0 does not overwrite an older installation; use the v1.0.0 script to uninstall before installing the new version.
+A verified, unmodified v1.0.0 or v1.1.0 installation upgrades through the same install command. The original uninstall backup, user settings and native services are retained. Only the coordinator restarts; a failed health check restores the previous coordinator files and receipt. Unknown or modified files, damaged backups and pending transactions block the upgrade.
 
 检查 / Check:
 
@@ -80,6 +84,6 @@ sh /tmp/glinet-agh-openclash-compat.sh uninstall
 
 The downloaded `/tmp` file may disappear after reboot; download it again before checking or uninstalling. Backups are in `/root/router-dns-coordinator-backups/`. Uninstall restores managed settings and removes the compatibility layer. Avoid concurrent configuration edits during installation or removal.
 
-MT5000 已实测原生开关组合、IPv4/IPv6、广告过滤、Fake-IP、OpenClash 重启及 Geo 更新。BE3600 的实机验收记录见对应 Release；安装、卸载、回滚及两种防火墙的行为另有隔离回归检查。
+此前 MT5000 已实测原生开关组合、IPv4/IPv6、广告过滤、Fake-IP、OpenClash 重启及 Geo 更新；BE3600 的实机验收记录见对应 Release。v1.2.0 的三模式与两种防火墙组合使用模拟规则回归检查，实机只核对 MT5000 当前 TUN 配置，没有逐一切换所有组合。安装、升级、卸载和回滚另有隔离回归检查。
 
-MT5000 testing covered native toggle combinations, IPv4/IPv6, filtering, Fake-IP, OpenClash restarts and Geo updates. See the release notes for BE3600 live verification. Isolated regression checks also cover installation, removal, rollback and both firewall backends.
+Earlier MT5000 testing covered native toggle combinations, IPv4/IPv6, filtering, Fake-IP, OpenClash restarts and Geo updates; see the corresponding release notes for BE3600 live verification. The v1.2.0 mode/backend matrix uses simulated-rule regression checks. Live verification covers the MT5000's current TUN configuration, without switching through every combination. Installation, upgrade, removal and rollback have separate isolated regression checks.
